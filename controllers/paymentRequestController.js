@@ -12,7 +12,6 @@ exports.createPaymentRequest = async (req, res) => {
       documentUrl
     } = req.body;
 
-    // Validate required fields
     if (!projectName || !department || !purpose || !amount || !requiredByDate || !documentUrl) {
       return res.status(400).json({ message: 'All fields are required' });
     }
@@ -62,22 +61,39 @@ exports.getAllPaymentRequests = async (req, res) => {
 exports.updatePaymentRequestStatus = async (req, res) => {
   try {
     const { status } = req.body;
+    const allowedStatuses = ['approved', 'rejected', 'hold'];
 
-    const paymentRequest = await PaymentRequest.findByIdAndUpdate(
-      req.params.id,
-      { 
-        status,
-        processedBy: req.user.id,
-        processedAt: new Date()
-      },
-      { new: true }
-    );
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+
+    const paymentRequest = await PaymentRequest.findById(req.params.id);
 
     if (!paymentRequest) {
       return res.status(404).json({ message: 'Payment request not found' });
     }
 
+    paymentRequest.status = status;
+    paymentRequest.processedBy = req.user.id;
+    paymentRequest.processedAt = new Date();
+
+    await paymentRequest.save();
+
     res.json(paymentRequest);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deletePaymentRequest = async (req, res) => {
+  try {
+    const paymentRequest = await PaymentRequest.findByIdAndDelete(req.params.id);
+
+    if (!paymentRequest) {
+      return res.status(404).json({ message: 'Payment request not found' });
+    }
+
+    res.json({ message: 'Payment request deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

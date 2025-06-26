@@ -1,4 +1,4 @@
-const Leave = require('../models/Leave');
+const Leave = require('../models/LeaveModel');
 
 exports.applyForLeave = async (req, res) => {
   try {

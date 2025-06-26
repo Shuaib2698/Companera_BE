@@ -4,13 +4,15 @@ const {
   createPaymentRequest,
   getMyPaymentRequests,
   getAllPaymentRequests,
-  updatePaymentRequestStatus
+  updatePaymentRequestStatus,
+  deletePaymentRequest
 } = require('../controllers/paymentRequestController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-router.post('/', protect, createPaymentRequest);
-router.get('/my-requests', protect, getMyPaymentRequests);
-router.get('/', protect, admin, getAllPaymentRequests);
-router.put('/:id/status', protect, admin, updatePaymentRequestStatus);
+router.post('/', protect, createPaymentRequest); // Employee
+router.get('/my-requests', protect, getMyPaymentRequests); // Employee
+router.get('/all', protect, admin, getAllPaymentRequests); // Admin
+router.patch('/:id/status', protect, admin, updatePaymentRequestStatus); // Admin updates status
+router.delete('/:id', protect, admin, deletePaymentRequest); // Admin deletes a request
 
 module.exports = router;
