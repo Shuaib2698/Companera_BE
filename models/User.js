@@ -21,6 +21,17 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
+// Create leave balance when new user is created
+userSchema.post('save', async function(doc, next) {
+  try {
+    const LeaveBalance = require('./LeaveBalanceModel');
+    await LeaveBalance.createForUser(doc._id);
+  } catch (error) {
+    console.error('Error creating leave balance:', error);
+  }
+  next();
+});
+
 // Method to compare passwords
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);

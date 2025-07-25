@@ -50,3 +50,27 @@ exports.updateProfilePicture = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Add this new function for counting users
+exports.getUsersCount = async (req, res) => {
+  try {
+    const { role } = req.query;
+    const filter = role ? { role } : {};
+    const count = await User.countDocuments(filter);
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
