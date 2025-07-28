@@ -21,13 +21,30 @@ exports.getUserById = async (req, res) => {
   }
 };
 
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, department, position, contactNumber, address } = req.body;
+    const updates = {};
     
+    if (req.body.personalInfo) updates.personalInfo = req.body.personalInfo;
+    if (req.body.professionalInfo) updates.professionalInfo = req.body.professionalInfo;
+    if (req.body.accountAccess) updates.accountAccess = req.body.accountAccess;
+    if (req.body.bankDetails) updates.bankDetails = req.body.bankDetails;
+
     const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { name, department, position, contactNumber, address },
+      req.user._id,
+      { $set: updates },
       { new: true }
     ).select('-password');
 
@@ -39,37 +56,32 @@ exports.updateProfile = async (req, res) => {
 
 exports.updateProfilePicture = async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const imageUrl = `/uploads/profile-pictures/${req.file.filename}`;
     const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { profilePicture: req.file.path },
+      req.user._id,
+      { 'personalInfo.imageUrl': imageUrl },
       { new: true }
     ).select('-password');
 
-    res.json(user);
+    res.json({
+      imageUrl: user.personalInfo.imageUrl
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Upload error:', error);
+    res.status(500).json({ message: error.message || 'Error uploading profile picture' });
   }
 };
 
-// Add this new function for counting users
 exports.getUsersCount = async (req, res) => {
   try {
     const { role } = req.query;
     const filter = role ? { role } : {};
     const count = await User.countDocuments(filter);
     res.json({ count });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getCurrentUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
