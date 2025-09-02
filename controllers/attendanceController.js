@@ -5,8 +5,8 @@ exports.punchIn = async (req, res) => {
   try {
     const today = moment().startOf('day');
     
-    // Check if already punched in today
-    const existingAttendance = await Attendance.findOne({
+    // Find today's attendance record or create a new one
+    let attendance = await Attendance.findOne({
       user: req.user.id,
       date: {
         $gte: today.toDate(),
@@ -14,15 +14,20 @@ exports.punchIn = async (req, res) => {
       }
     });
 
-    if (existingAttendance) {
-      return res.status(400).json({ message: 'You have already punched in today' });
+    if (!attendance) {
+      // Create new attendance record for today
+      attendance = new Attendance({
+        user: req.user.id,
+        date: today.toDate(),
+        punches: [],
+        status: 'present'
+      });
     }
 
-    const attendance = new Attendance({
-      user: req.user.id,
-      date: today.toDate(),
-      punchIn: new Date(),
-      status: 'present'
+    // Add new punch-in (always allowed)
+    attendance.punches.push({
+      type: 'in',
+      time: new Date()
     });
 
     await attendance.save();
@@ -48,13 +53,19 @@ exports.punchOut = async (req, res) => {
       return res.status(400).json({ message: 'You have not punched in today' });
     }
 
-    if (attendance.punchOut) {
-      return res.status(400).json({ message: 'You have already punched out today' });
+    // Check if last punch was an 'in' (can't punch out twice in a row)
+    const lastPunch = attendance.punches[attendance.punches.length - 1];
+    if (!lastPunch || lastPunch.type === 'out') {
+      return res.status(400).json({ message: 'You need to punch in first' });
     }
 
-    attendance.punchOut = new Date();
-    await attendance.save();
+    // Add new punch-out
+    attendance.punches.push({
+      type: 'out',
+      time: new Date()
+    });
 
+    await attendance.save();
     res.json(attendance);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -63,7 +74,7 @@ exports.punchOut = async (req, res) => {
 
 exports.manualPunch = async (req, res) => {
   try {
-    const { date, punchIn, punchOut, reason } = req.body;
+    const { date, punches, reason } = req.body;
     
     // Only allow manual punch for previous days
     if (moment(date).isSameOrAfter(moment(), 'day')) {
@@ -83,8 +94,10 @@ exports.manualPunch = async (req, res) => {
     const attendance = new Attendance({
       user: req.user.id,
       date: moment(date).startOf('day').toDate(),
-      punchIn: new Date(punchIn),
-      punchOut: new Date(punchOut),
+      punches: punches.map(p => ({
+        type: p.type,
+        time: new Date(p.time)
+      })),
       reason,
       isManual: true,
       status: 'present'
@@ -97,6 +110,7 @@ exports.manualPunch = async (req, res) => {
   }
 };
 
+// Other functions remain the same but need to handle the new punches array structure
 exports.getMyAttendance = async (req, res) => {
   try {
     const { month, year } = req.query;

@@ -9,8 +9,8 @@ const {
 } = require('../controllers/attendanceController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-router.post('/punchin', protect, punchIn);
-router.post('/punchout', protect, punchOut);
+router.post('/punch-in', protect, punchIn);
+router.post('/punch-out', protect, punchOut);
 router.post('/manual', protect, manualPunch);
 router.get('/my-attendance', protect, getMyAttendance);
 router.get('/', protect, admin, getAllAttendance);
