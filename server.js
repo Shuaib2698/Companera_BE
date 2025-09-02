@@ -27,6 +27,7 @@ app.use('/api/payment-Request', require('./routes/paymentRequestRoutes'));
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/leaves', require('./routes/leaveRoutes'));
 app.use('/api/wfh', require('./routes/wfhRoutes'));
+app.use('/api/work-reports', require('./routes/workReportRoutes'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
