@@ -4,6 +4,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 const path = require('path');
+const holidayRoutes = require('./routes/holidayRoutes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/leaves', require('./routes/leaveRoutes'));
 app.use('/api/wfh', require('./routes/wfhRoutes'));
 app.use('/api/work-reports', require('./routes/workReportRoutes'));
+app.use('/api/holidays', holidayRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

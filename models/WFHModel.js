@@ -15,7 +15,8 @@ const wfhSchema = new mongoose.Schema({
     default: 'pending' 
   },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  approvedAt: { type: Date }
+  approvedAt: { type: Date },
+  rejectionReason: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('WFH', wfhSchema);
