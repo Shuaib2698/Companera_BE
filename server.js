@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 const path = require('path');
 const holidayRoutes = require('./routes/holidayRoutes');
-
+const statsRoutes = require('./routes/statsRoutes');
 const app = express();
 
 mongoose.connect(process.env.MONGODB_URI)
@@ -30,6 +30,7 @@ app.use('/api/leaves', require('./routes/leaveRoutes'));
 app.use('/api/wfh', require('./routes/wfhRoutes'));
 app.use('/api/work-reports', require('./routes/workReportRoutes'));
 app.use('/api/holidays', holidayRoutes);
+app.use('/api/stats', statsRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

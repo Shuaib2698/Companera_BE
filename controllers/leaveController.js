@@ -2,16 +2,54 @@ const Leave = require('../models/LeaveModel');
 const LeaveBalance = require('../models/LeaveBalanceModel');
 
 // Leave Controller Functions
+// In leaveController.js, update the applyForLeave function
 exports.applyForLeave = async (req, res) => {
   try {
     const { startDate, endDate, type, reason } = req.body;
+
+    // Check for holidays in the requested date range
+    const holidays = await Holiday.find({
+      date: { 
+        $gte: new Date(startDate), 
+        $lte: new Date(endDate) 
+      }
+    });
+    
+    // Calculate actual leave days (excluding holidays and weekends)
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    let leaveDays = 0;
+    let currentDate = new Date(start);
+    
+    while (currentDate <= end) {
+      // Check if current date is a holiday
+      const isHoliday = holidays.some(holiday => 
+        holiday.date.toDateString() === currentDate.toDateString()
+      );
+      
+      // Check if current date is a weekend (Saturday or Sunday)
+      const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+      
+      if (!isHoliday && !isWeekend) {
+        leaveDays++;
+      }
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    if (leaveDays === 0) {
+      return res.status(400).json({ 
+        message: 'No working days in the selected date range (excluding holidays and weekends)' 
+      });
+    }
 
     const leave = new Leave({
       employee: req.user.id,
       startDate,
       endDate,
       type,
-      reason
+      reason,
+      calculatedDays: leaveDays // Store calculated days excluding holidays and weekends
     });
 
     await leave.save();
