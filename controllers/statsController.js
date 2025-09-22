@@ -5,89 +5,66 @@ const Holiday = require('../models/HolidayModel');
 const moment = require('moment');
 
 // Get employee statistics for dashboard
+// In statsController.js, update the getEmployeeStats function:
 exports.getEmployeeStats = async (req, res) => {
   try {
     const userId = req.user.id;
     const currentDate = new Date();
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
     
-    // Get all attendance records for the month
-    const attendanceRecords = await Attendance.find({
+    // Get attendance records for current month
+    const attendance = await Attendance.find({
       user: userId,
-      date: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }
+      date: {
+        $gte: new Date(currentYear, currentMonth - 1, 1),
+        $lte: new Date(currentYear, currentMonth, 0)
+      }
     });
     
-    // Get all approved leaves for the month
-    const approvedLeaves = await Leave.find({
-      employee: userId,
-      status: 'approved',
-      $or: [
-        { startDate: { $gte: firstDayOfMonth, $lte: lastDayOfMonth } },
-        { endDate: { $gte: firstDayOfMonth, $lte: lastDayOfMonth } }
-      ]
-    });
+    // Calculate worked days (days with at least one punch)
+    const workedDays = attendance.filter(record => 
+      record.punches && record.punches.length > 0
+    ).length;
     
-    // Get all holidays for the month
-    const holidays = await Holiday.find({
-      date: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }
-    });
-    
-    // Calculate working days (excluding weekends and holidays)
+    // Calculate working days (excluding weekends)
+    const startDate = new Date(currentYear, currentMonth - 1, 1);
+    const endDate = new Date(currentYear, currentMonth, 0);
     let workingDays = 0;
-    let currentDateIter = new Date(firstDayOfMonth);
+    let currentDateIter = new Date(startDate);
     
-    while (currentDateIter <= lastDayOfMonth) {
+    while (currentDateIter <= endDate) {
       const dayOfWeek = currentDateIter.getDay();
-      // Check if it's a weekend (Saturday or Sunday)
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        // Check if it's a holiday
-        const isHoliday = holidays.some(holiday => 
-          holiday.date.toDateString() === currentDateIter.toDateString()
-        );
-        if (!isHoliday) {
-          workingDays++;
-        }
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday or Saturday
+        workingDays++;
       }
       currentDateIter.setDate(currentDateIter.getDate() + 1);
     }
     
-    // Calculate absent days
-    const presentDays = attendanceRecords.filter(record => 
-      record.punches && record.punches.length > 0
-    ).length;
-    
-    const absentDays = workingDays - presentDays;
-    
-    // Count approved leaves in the month
-    let approvedLeaveCount = 0;
-    approvedLeaves.forEach(leave => {
-      const start = new Date(Math.max(new Date(leave.startDate), firstDayOfMonth));
-      const end = new Date(Math.min(new Date(leave.endDate), lastDayOfMonth));
-      
-      let current = new Date(start);
-      while (current <= end) {
-        const dayOfWeek = current.getDay();
-        // Only count weekdays that are not holidays
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-          const isHoliday = holidays.some(holiday => 
-            holiday.date.toDateString() === current.toDateString()
-          );
-          if (!isHoliday) {
-            approvedLeaveCount++;
-          }
-        }
-        current.setDate(current.getDate() + 1);
-      }
+    // Get approved leaves for current month
+    const approvedLeaves = await Leave.countDocuments({
+      employee: userId,
+      status: 'approved',
+      $or: [
+        { startDate: { $gte: startDate, $lte: endDate } },
+        { endDate: { $gte: startDate, $lte: endDate } }
+      ]
     });
+    
+    // Get holidays for current month
+    const holidays = await Holiday.countDocuments({
+      date: { $gte: startDate, $lte: endDate }
+    });
+    
+    // Calculate absent days
+    const absentDays = workingDays - workedDays - approvedLeaves;
     
     res.json({
       workingDays,
       absentDays: Math.max(0, absentDays), // Ensure not negative
-      approvedLeaves: approvedLeaveCount,
-      holidays: holidays.length,
-      pendingLeaves: 0, // This will be populated from frontend
-      upcomingLeaves: 0 // This will be populated from frontend
+      approvedLeaves,
+      holidays,
+      workedDays
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

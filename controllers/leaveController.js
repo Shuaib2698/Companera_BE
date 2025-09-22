@@ -1,5 +1,6 @@
 const Leave = require('../models/LeaveModel');
 const LeaveBalance = require('../models/LeaveBalanceModel');
+const Holiday = require('../models/HolidayModel');
 
 // Leave Controller Functions
 // In leaveController.js, update the applyForLeave function
