@@ -2,15 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const AssetRequest = require('../models/AssetRequest');
-const auth = require('../middleware/auth');
+const { protect, admin } = require('../middleware/authMiddleware'); // Updated to use authMiddleware
 
 // Get all asset requests (admin only)
-router.get('/all', auth, async (req, res) => {
+router.get('/all', protect, admin, async (req, res) => { // Added protect and admin middleware
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
     const requests = await AssetRequest.find()
       .populate('employee', 'name email department')
       .sort({ createdAt: -1 });
@@ -21,9 +17,9 @@ router.get('/all', auth, async (req, res) => {
 });
 
 // Get my asset requests
-router.get('/my-requests', auth, async (req, res) => {
+router.get('/my-requests', protect, async (req, res) => { // Added protect middleware
   try {
-    const requests = await AssetRequest.find({ employee: req.user.userId })
+    const requests = await AssetRequest.find({ employee: req.user._id }) // Use req.user._id
       .sort({ createdAt: -1 });
     res.json(requests);
   } catch (error) {
@@ -32,11 +28,11 @@ router.get('/my-requests', auth, async (req, res) => {
 });
 
 // Create asset request
-router.post('/', auth, async (req, res) => {
+router.post('/', protect, async (req, res) => { // Added protect middleware
   try {
     const request = new AssetRequest({
       ...req.body,
-      employee: req.user.userId
+      employee: req.user._id // Use req.user._id
     });
     await request.save();
     await request.populate('employee', 'name email department');
@@ -47,12 +43,8 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Update asset request status (admin only)
-router.patch('/:id/status', auth, async (req, res) => {
+router.patch('/:id/status', protect, admin, async (req, res) => { // Added protect and admin middleware
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
     const request = await AssetRequest.findByIdAndUpdate(
       req.params.id,
       { status: req.body.status },
@@ -70,7 +62,7 @@ router.patch('/:id/status', auth, async (req, res) => {
 });
 
 // Delete asset request
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', protect, async (req, res) => { // Added protect middleware
   try {
     const request = await AssetRequest.findById(req.params.id);
     
@@ -79,7 +71,7 @@ router.delete('/:id', auth, async (req, res) => {
     }
     
     // Only admin or the employee who created the request can delete it
-    if (req.user.role !== 'admin' && request.employee.toString() !== req.user.userId) {
+    if (req.user.role !== 'admin' && request.employee.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
     

@@ -12,8 +12,11 @@ exports.createPaymentRequest = async (req, res) => {
       documentUrl
     } = req.body;
 
-    if (!projectName || !department || !purpose || !amount || !requiredByDate || !documentUrl) {
+    if (!projectName || !department || !purpose || !amount || !requiredByDate ) {
       return res.status(400).json({ message: 'All fields are required' });
+    }
+        if (amount > 100000) {
+      return res.status(400).json({ message: 'Payment amount cannot exceed ₹1,00,000' });
     }
 
     const paymentRequest = new PaymentRequest({
