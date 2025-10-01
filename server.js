@@ -31,6 +31,8 @@ app.use('/api/wfh', require('./routes/wfhRoutes'));
 app.use('/api/work-reports', require('./routes/workReportRoutes'));
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/asset-requests', require('./routes/assetRequestRoutes'));
+app.use('/api/trip-requests', require('./routes/tripRequestRoutes'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

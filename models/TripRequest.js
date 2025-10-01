@@ -40,6 +40,8 @@ const tripRequestSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  country: String,
+  zipCode: String,
   description: String,
   status: {
     type: String,

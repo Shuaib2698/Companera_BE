@@ -41,8 +41,6 @@ const assetRequestSchema = new mongoose.Schema({
     enum: ['low', 'medium', 'high'],
     default: 'medium'
   },
-  country: String,
-  zipCode: String,
   description: String,
   status: {
     type: String,
